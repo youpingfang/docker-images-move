@@ -56,7 +56,7 @@ dim
 
 1. 自动列出本机 Docker 镜像编号
 2. 输入要迁移的编号，例如 `1` 或 `1 3 5`
-3. 输入目标服务器 IP，例如 `203.24.89.220`
+3. 输入目标服务器 IP，例如 `1.2.3.4`
 4. 如需密码，按 SSH 提示输入密码
 5. 自动打包镜像并上传到目标服务器 `/mnt`
 6. 自动在目标服务器执行 `docker load`
@@ -77,7 +77,7 @@ dim
 不知道镜像名时：
 
 ```bash
-dim m 203.24.89.220
+dim m 1.2.3.4
 ```
 
 脚本会列出本机镜像编号，让你选择。
@@ -85,25 +85,25 @@ dim m 203.24.89.220
 知道镜像名时：
 
 ```bash
-dim m 203.24.89.220 nginx:alpine
+dim m 1.2.3.4 nginx:alpine
 ```
 
 多个镜像：
 
 ```bash
-dim m 203.24.89.220 nginx:alpine redis:7 mysql:8
+dim m 1.2.3.4 nginx:alpine redis:7 mysql:8
 ```
 
 指定 SSH 端口：
 
 ```bash
-dim m 203.24.89.220:2222 nginx:alpine
+dim m 1.2.3.4:2222 nginx:alpine
 ```
 
 指定 SSH 用户：
 
 ```bash
-dim m admin@203.24.89.220 nginx:alpine
+dim m admin@1.2.3.4 nginx:alpine
 ```
 
 ## 模式二：在 B 服务器上拉取 A 服务器镜像
@@ -163,7 +163,7 @@ dim p IP            # 从远端服务器拉镜像到本机
 ### 推送模式
 
 ```bash
-dim move -H 203.24.89.220 nginx:alpine
+dim move -H 1.2.3.4 nginx:alpine
 ```
 
 参数：
@@ -204,19 +204,19 @@ dim pull -H 1.2.3.4
 跳过首次 SSH 指纹确认：
 
 ```bash
-dim move -H 203.24.89.220 nginx:alpine --ssh-opts "-o StrictHostKeyChecking=no"
+dim move -H 1.2.3.4 nginx:alpine --ssh-opts "-o StrictHostKeyChecking=no"
 ```
 
 只上传镜像包，不远端加载：
 
 ```bash
-dim move -H 203.24.89.220 nginx:alpine --no-load
+dim move -H 1.2.3.4 nginx:alpine --no-load
 ```
 
 远端加载后删除 `/mnt` 下的镜像包：
 
 ```bash
-dim move -H 203.24.89.220 nginx:alpine --remove-remote
+dim move -H 1.2.3.4 nginx:alpine --remove-remote
 ```
 
 从 A 拉镜像到当前服务器，但只保存不加载：
@@ -265,34 +265,6 @@ dim pull -H 1.2.3.4 nginx:alpine --no-load
 - 远端服务器：Docker、gzip
 
 ## 常见问题
-
-### 为什么之前需要输入多次密码？
-
-因为一次迁移包含 SSH 检查、SCP 上传、SSH 加载多个连接。
-
-现在脚本已启用 SSH 连接复用，同一次迁移通常只需要输入一次密码。
-
-### 首次连接为什么要输入 yes？
-
-这是 SSH 的主机指纹确认，属于正常安全机制。
-
-如果想跳过，可以使用：
-
-```bash
-dim move -H 203.24.89.220 nginx:alpine --ssh-opts "-o StrictHostKeyChecking=no"
-```
-
-### 目标服务器的包会被删除吗？
-
-默认不会。
-
-推送模式下，上传到目标服务器 `/mnt` 的 `.tar.gz` 会保留，方便你后续手动删除或复用。
-
-如果想自动删除，使用：
-
-```bash
-dim move -H 203.24.89.220 nginx:alpine --remove-remote
-```
 
 ### 不知道镜像名怎么办？
 
