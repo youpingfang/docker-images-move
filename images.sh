@@ -83,7 +83,7 @@ resolve_image() {
 }
 
 image_refs() {
-  docker images --format '{{.Repository}}:{{.Tag}}' | awk '$0 !~ /<none>/'
+  docker images --format '{{.Repository}}:{{.Tag}}' | sed '/<none>/d'
 }
 
 list_images_numbered() {
@@ -130,7 +130,7 @@ select_remote_images_by_number() {
   local target="$2"
   local refs_file nums selected ref total
   refs_file="$(mktemp)"
-  "${ssh_cmd_ref[@]}" "$target" "docker images --format '{{.Repository}}:{{.Tag}}' | awk '$0 !~ /<none>/'" > "$refs_file"
+  "${ssh_cmd_ref[@]}" "$target" "docker images --format '{{.Repository}}:{{.Tag}}' | sed '/<none>/d'" > "$refs_file"
   total="$(wc -l < "$refs_file" | tr -d ' ')"
   [ "$total" -gt 0 ] || { rm -f "$refs_file"; fail "远端没有可用镜像"; }
 
@@ -313,6 +313,7 @@ quick_move() {
 
   if [ "$#" -eq 0 ]; then
     mapfile -t chosen < <(select_images_by_number)
+    [ "${#chosen[@]}" -gt 0 ] || fail "未选择任何镜像，已停止迁移"
     move_images -H "$host" -u "$user" -p "$port" -r "$DEFAULT_REMOTE_DIR" "${chosen[@]}"
   else
     move_images -H "$host" -u "$user" -p "$port" -r "$DEFAULT_REMOTE_DIR" "$@"
@@ -361,6 +362,7 @@ pull_images() {
   else
     chosen=("$@")
   fi
+  [ "${#chosen[@]}" -gt 0 ] || fail "未选择任何远端镜像，已停止拉取"
 
   local image archive stamp
   for image in "${chosen[@]}"; do
@@ -408,6 +410,7 @@ quick_wizard() {
   echo
 
   mapfile -t chosen < <(select_images_by_number)
+  [ "${#chosen[@]}" -gt 0 ] || fail "未选择任何镜像，已停止迁移"
   echo >&2
   read -r -p "输入目标 IP（可用 IP:端口 或 用户@IP）: " target </dev/tty
   [ -n "$target" ] || fail "目标 IP 不能为空"
