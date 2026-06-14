@@ -25,18 +25,10 @@
 
 ## 安装
 
-克隆项目：
+推荐一条命令安装，并创建全局 `dim` 命令：
 
 ```bash
-git clone https://github.com/youpingfang/docker-images-move.git
-cd docker-images-move
-chmod +x images.sh
-```
-
-推荐创建全局短命令：
-
-```bash
-ln -sf "$(pwd)/images.sh" /usr/local/bin/dim
+git clone https://github.com/youpingfang/docker-images-move.git && cd docker-images-move && chmod +x images.sh && ln -sf "$(pwd)/images.sh" /usr/local/bin/dim
 ```
 
 之后任意目录都可以直接使用：
@@ -45,9 +37,10 @@ ln -sf "$(pwd)/images.sh" /usr/local/bin/dim
 dim
 ```
 
-如果不想创建全局命令，也可以直接运行：
+如果不想创建全局命令，也可以只克隆项目后直接运行：
 
 ```bash
+git clone https://github.com/youpingfang/docker-images-move.git && cd docker-images-move && chmod +x images.sh
 bash images.sh
 ```
 
