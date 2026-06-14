@@ -35,6 +35,7 @@ Docker 镜像迁移工具 v${VERSION}
   bash images.sh m IP IMAGE...           # 手机友好：迁移到 IP，默认 root/22//mnt
   bash images.sh m IP:PORT IMAGE...      # 手机友好：指定端口
   bash images.sh m USER@IP IMAGE...      # 手机友好：指定用户
+  bash images.sh p                       # 提示输入源服务器 IP，再拉取镜像到本机
   bash images.sh p IP                    # 从远端 IP 拉取镜像到本机
   bash images.sh move -H IP IMAGE...     # 完整参数模式
   bash images.sh pull -H IP              # 完整拉取模式：远端选镜像 -> 拉到本机
@@ -395,9 +396,15 @@ pull_images() {
 }
 
 quick_pull() {
-  [ "$#" -ge 1 ] || fail "用法: bash images.sh p IP；例: bash images.sh p 1.2.3.4"
-  parse_target "$1"
-  shift
+  local target
+  if [ "$#" -ge 1 ]; then
+    target="$1"
+    shift
+  else
+    read -r -p "输入源容器服务器 IP（可用 IP:端口 或 用户@IP）: " target </dev/tty
+    [ -n "$target" ] || fail "源容器服务器 IP 不能为空"
+  fi
+  parse_target "$target"
   pull_images -H "$PARSED_HOST" -u "$PARSED_USER" -p "$PARSED_PORT" "$@"
 }
 
