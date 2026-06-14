@@ -86,12 +86,16 @@ image_refs() {
   docker images --format '{{.Repository}}:{{.Tag}}' | sed '/<none>/d'
 }
 
+image_refs_with_size() {
+  docker images --format '{{.Repository}}:{{.Tag}}	{{.Size}}' | sed '/<none>/d'
+}
+
 list_images_numbered() {
   need_cmd docker
-  local n=1 ref
-  image_refs | while IFS= read -r ref; do
-    printf '%3d) %s
-' "$n" "$ref"
+  local n=1 line ref size
+  image_refs_with_size | while IFS=$'	' read -r ref size; do
+    printf '%3d) %-45s %s
+' "$n" "$ref" "$size"
     n=$((n + 1))
   done
 }
@@ -100,12 +104,12 @@ select_images_by_number() {
   need_cmd docker
   local refs_file nums selected ref total
   refs_file="$(mktemp)"
-  image_refs > "$refs_file"
+  image_refs_with_size > "$refs_file"
   total="$(wc -l < "$refs_file" | tr -d ' ')"
   [ "$total" -gt 0 ] || { rm -f "$refs_file"; fail "本机没有可用镜像"; }
 
   echo "本机镜像列表：" >&2
-  nl -w3 -s') ' "$refs_file" >&2
+  awk -F '\t' '{printf "%3d) %-45s %s\n", NR, $1, $2}' "$refs_file" >&2
   echo >&2
   read -r -p "输入编号，多个用空格，如 1 3 5: " nums </dev/tty
   [ -n "$nums" ] || { rm -f "$refs_file"; fail "未选择镜像"; }
@@ -117,7 +121,7 @@ select_images_by_number() {
       *[!0-9]*|'') rm -f "$refs_file"; fail "编号无效: $num" ;;
     esac
     [ "$num" -ge 1 ] && [ "$num" -le "$total" ] || { rm -f "$refs_file"; fail "编号超出范围: $num"; }
-    ref="$(sed -n "${num}p" "$refs_file")"
+    ref="$(sed -n "${num}p" "$refs_file" | cut -f1)"
     selected="${selected}${ref}
 "
   done
@@ -130,12 +134,12 @@ select_remote_images_by_number() {
   local target="$2"
   local refs_file nums selected ref total
   refs_file="$(mktemp)"
-  "${ssh_cmd_ref[@]}" "$target" "docker images --format '{{.Repository}}:{{.Tag}}' | sed '/<none>/d'" > "$refs_file"
+  "${ssh_cmd_ref[@]}" "$target" "docker images --format '{{.Repository}}:{{.Tag}}	{{.Size}}' | sed '/<none>/d'" > "$refs_file"
   total="$(wc -l < "$refs_file" | tr -d ' ')"
   [ "$total" -gt 0 ] || { rm -f "$refs_file"; fail "远端没有可用镜像"; }
 
   echo "远端镜像列表：" >&2
-  nl -w3 -s') ' "$refs_file" >&2
+  awk -F '\t' '{printf "%3d) %-45s %s\n", NR, $1, $2}' "$refs_file" >&2
   echo >&2
   read -r -p "输入编号，多个用空格，如 1 3 5: " nums </dev/tty
   [ -n "$nums" ] || { rm -f "$refs_file"; fail "未选择镜像"; }
@@ -147,7 +151,7 @@ select_remote_images_by_number() {
       *[!0-9]*|'') rm -f "$refs_file"; fail "编号无效: $num" ;;
     esac
     [ "$num" -ge 1 ] && [ "$num" -le "$total" ] || { rm -f "$refs_file"; fail "编号超出范围: $num"; }
-    ref="$(sed -n "${num}p" "$refs_file")"
+    ref="$(sed -n "${num}p" "$refs_file" | cut -f1)"
     selected="${selected}${ref}\n"
   done
   rm -f "$refs_file"
