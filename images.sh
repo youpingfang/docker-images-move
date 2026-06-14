@@ -126,17 +126,17 @@ select_images_by_number() {
 }
 
 remote_image_refs() {
-  local ssh_cmd_name="$1"
+  local -n ssh_cmd_ref="$1"
   local target="$2"
-  "${ssh_cmd_name[@]}" "$target" "docker images --format '{{.Repository}}:{{.Tag}}' | grep -v '<none>'"
+  "${ssh_cmd_ref[@]}" "$target" "docker images --format '{{.Repository}}:{{.Tag}}' | grep -v '<none>'"
 }
 
 select_remote_images_by_number() {
-  local ssh_cmd_name="$1"
+  local -n ssh_cmd_ref="$1"
   local target="$2"
   local refs_file nums selected ref total
   refs_file="$(mktemp)"
-  "${ssh_cmd_name[@]}" "$target" "docker images --format '{{.Repository}}:{{.Tag}}' | grep -v '<none>'" > "$refs_file"
+  "${ssh_cmd_ref[@]}" "$target" "docker images --format '{{.Repository}}:{{.Tag}}' | grep -v '<none>'" > "$refs_file"
   total="$(wc -l < "$refs_file" | tr -d ' ')"
   [ "$total" -gt 0 ] || { rm -f "$refs_file"; fail "远端没有可用镜像"; }
 
