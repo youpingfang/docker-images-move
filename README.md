@@ -4,6 +4,8 @@
 
 当目标服务器无法直接 `docker pull` 镜像时，可以用它在服务器之间迁移 Docker 镜像：自动 `docker save`、传输镜像包、并在目标服务器执行 `docker load`。
 
+![Docker 镜像快速迁移演示](image.png)
+
 ## 适用场景
 
 - 目标服务器网络受限，无法拉取 Docker Hub / GHCR / 私有仓库镜像
