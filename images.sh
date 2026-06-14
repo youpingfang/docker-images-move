@@ -25,16 +25,16 @@ usage() {
 Docker 镜像迁移工具 v${VERSION}
 
 用法:
-  dim                                    # 手机向导：选镜像编号 -> 输入 IP -> 迁移
-  bash images.sh                         # 同 dim，进入手机向导
+  dim                                    # 快速向导：选镜像编号 -> 输入 IP -> 迁移
+  bash images.sh                         # 同 dim，进入快速向导
   bash images.sh menu                    # 传统交互菜单
   bash images.sh ls                      # 编号查看本机镜像
   bash images.sh s IMAGE...              # 保存镜像到本机目录
   bash images.sh l FILE...               # 从 tar/tar.gz 加载镜像
   bash images.sh m IP                    # 不知道镜像名：弹编号列表选择后迁移
-  bash images.sh m IP IMAGE...           # 手机友好：迁移到 IP，默认 root/22//mnt
-  bash images.sh m IP:PORT IMAGE...      # 手机友好：指定端口
-  bash images.sh m USER@IP IMAGE...      # 手机友好：指定用户
+  bash images.sh m IP IMAGE...           # 快捷迁移到 IP，默认 root/22//mnt
+  bash images.sh m IP:PORT IMAGE...      # 快捷指定端口
+  bash images.sh m USER@IP IMAGE...      # 快捷指定用户
   bash images.sh p                       # 提示输入源服务器 IP，再拉取镜像到本机
   bash images.sh p IP                    # 从远端 IP 拉取镜像到本机
   bash images.sh move -H IP IMAGE...     # 完整参数模式
@@ -48,11 +48,11 @@ move 常用参数:
   -o, --output-dir DIR     本地临时目录，默认: ${DEFAULT_LOCAL_DIR}
       --no-load            只上传，不在远端加载
       --keep-local         保留本地 tar.gz
-      --remove-remote       远端加载后删除 tar.gz（默认保留）
+      --remove-remote      远端加载后删除 tar.gz（默认保留）
       --no-compress        不压缩，保存为 .tar
       --ssh-opts OPTS      额外 SSH/SCP 参数，如: "-o StrictHostKeyChecking=no"
 
-手机上推荐用短命令:
+推荐用短命令:
   bash images.sh m 1.2.3.4              # 不填镜像名会让你选编号
   bash images.sh m 1.2.3.4 nginx:alpine
   bash images.sh m 1.2.3.4 redis:7 mysql:8
@@ -63,7 +63,7 @@ move 常用参数:
 完整参数示例:
   bash images.sh move -H 1.2.3.4 nginx:alpine
   bash images.sh move -H 1.2.3.4 -u root -p 2222 redis:7 mysql:8
-  bash images.sh move -H 1.2.3.4 -r /mnt --keep-remote myapp:latest
+  bash images.sh move -H 1.2.3.4 -r /mnt myapp:latest
 USAGE
 }
 
@@ -83,7 +83,7 @@ resolve_image() {
 }
 
 image_refs() {
-  docker images --format '{{.Repository}}:{{.Tag}}' | grep -v '<none>'
+  docker images --format '{{.Repository}}:{{.Tag}}' | awk '$0 !~ /<none>/'
 }
 
 list_images_numbered() {
@@ -125,18 +125,12 @@ select_images_by_number() {
   printf '%b' "$selected"
 }
 
-remote_image_refs() {
-  local -n ssh_cmd_ref="$1"
-  local target="$2"
-  "${ssh_cmd_ref[@]}" "$target" "docker images --format '{{.Repository}}:{{.Tag}}' | grep -v '<none>'"
-}
-
 select_remote_images_by_number() {
   local -n ssh_cmd_ref="$1"
   local target="$2"
   local refs_file nums selected ref total
   refs_file="$(mktemp)"
-  "${ssh_cmd_ref[@]}" "$target" "docker images --format '{{.Repository}}:{{.Tag}}' | grep -v '<none>'" > "$refs_file"
+  "${ssh_cmd_ref[@]}" "$target" "docker images --format '{{.Repository}}:{{.Tag}}' | awk '$0 !~ /<none>/'" > "$refs_file"
   total="$(wc -l < "$refs_file" | tr -d ' ')"
   [ "$total" -gt 0 ] || { rm -f "$refs_file"; fail "远端没有可用镜像"; }
 
@@ -204,7 +198,7 @@ save_images() {
   [ "$#" -gt 0 ] || fail "请提供镜像名"
   local image
   for image in "$@"; do
-    save_one_image "$image" "$out_dir" "$compress" >/dev/null
+    save_one_image "$image" "$out_dir" "$compress"
   done
 }
 
@@ -303,7 +297,7 @@ move_images() {
 
 
 quick_move() {
-  [ "$#" -ge 2 ] || fail "用法: bash images.sh m IP 镜像名；例: bash images.sh m 1.2.3.4 nginx:alpine"
+  [ "$#" -ge 1 ] || fail "用法: bash images.sh m IP [镜像名...]；例: bash images.sh m 1.2.3.4 nginx:alpine"
   local target="$1"
   shift
   local user="$DEFAULT_USER" host="$target" port="$DEFAULT_PORT"
